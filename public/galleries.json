@@ -1,0 +1,146 @@
+{
+  "galleries": [
+    {
+      "id": "csaladi-hazak",
+      "title": "Családi házak",
+      "slug": "csaladi-hazak",
+      "subcategories": [
+        {
+          "id": "erzsebethegy",
+          "title": "Erzsébethegy",
+          "slug": "erzsebethegy",
+          "images": [
+            "erzsebethegy/Image01.webp",
+            "erzsebethegy/Image02.webp",
+            "erzsebethegy/Image03.webp",
+            "erzsebethegy/Image04.webp",
+            "erzsebethegy/Image05.webp",
+            "erzsebethegy/Image06.webp",
+            "erzsebethegy/Image07.webp",
+            "erzsebethegy/Image08.webp",
+            "erzsebethegy/Image09.webp",
+            "erzsebethegy/Image10.webp",
+            "erzsebethegy/Image11.webp",
+            "erzsebethegy/Image12.webp",
+            "erzsebethegy/Image13.webp",
+            "erzsebethegy/Image14.webp",
+            "erzsebethegy/Image15.webp",
+            "erzsebethegy/Image16.webp",
+            "erzsebethegy/Image17.webp",
+            "erzsebethegy/Image18.webp",
+            "erzsebethegy/Image19.webp",
+            "erzsebethegy/Image20.webp",
+            "erzsebethegy/Image21.webp",
+            "erzsebethegy/Image22.webp",
+            "erzsebethegy/Image23.webp",
+            "erzsebethegy/Image24.webp",
+            "erzsebethegy/Image25.webp",
+            "erzsebethegy/Image26.webp",
+            "erzsebethegy/Image27.webp",
+            "erzsebethegy/Image28.webp",
+            "erzsebethegy/Image29.webp",
+            "erzsebethegy/Image30.webp",
+            "erzsebethegy/Image31.webp",
+            "erzsebethegy/Image32.webp",
+            "erzsebethegy/Image33.webp",
+            "erzsebethegy/Image34.webp",
+            "erzsebethegy/Image35.webp",
+            "erzsebethegy/Image36.webp",
+            "erzsebethegy/Image37.webp",
+            "erzsebethegy/Image38.webp",
+            "erzsebethegy/Image39.webp",
+            "erzsebethegy/Image40.webp",
+            "erzsebethegy/Image41.webp",
+            "erzsebethegy/Image42.webp",
+            "erzsebethegy/Image43.webp"
+          ]
+        },
+        {
+          "id": "sagod_to_utca",
+          "title": "Ságod - Tó utca",
+          "slug": "sagod_to_utca",
+          "images": [
+            "sagod_to_utca/Image01.webp",
+            "sagod_to_utca/Image02.webp",
+            "sagod_to_utca/Image03.webp",
+            "sagod_to_utca/Image04.webp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipari-kereskedelmi",
+      "title": "Ipari és kereskedelmi épületek",
+      "slug": "ipari-kereskedelmi",
+      "subcategories": [
+        {
+          "id": "ruhagyar",
+          "title": "Ruhagyár",
+          "slug": "ruhagyar",
+          "images": [
+            "ruhagyar/Image01.webp",
+            "ruhagyar/Image02.webp",
+            "ruhagyar/Image03.webp",
+            "ruhagyar/Image04.webp",
+            "ruhagyar/Image05.webp",
+            "ruhagyar/Image06.webp",
+            "ruhagyar/Image07.webp",
+            "ruhagyar/Image08.webp",
+            "ruhagyar/Image09.webp",
+            "ruhagyar/Image10.webp",
+            "ruhagyar/Image11.webp"
+          ]
+        },
+        {
+          "id": "salarkitek",
+          "title": "Salarkitek Kft.",
+          "slug": "salarkitek",
+          "images": [
+            "salarkitek/Image01.webp",
+            "salarkitek/Image02.webp",
+            "salarkitek/Image03.webp",
+            "salarkitek/Image04.webp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "felujitas",
+      "title": "Felújítás",
+      "slug": "felujitas",
+      "subcategories": [
+        {
+          "id": "sagod_fj",
+          "title": "Ságod - Felújítás",
+          "slug": "sagod_fj",
+          "images": [
+            "sagod_fj/Image01.webp",
+            "sagod_fj/Image02.webp",
+            "sagod_fj/Image03.webp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gepjarmupark",
+      "title": "Gépjárműpark",
+      "slug": "gepjarmupark",
+      "subcategories": [
+        {
+          "id": "gepjarmupark",
+          "title": "Gépjárműpark",
+          "slug": "gepjarmupark",
+          "images": [
+            "gepjarmupark/Image01.webp",
+            "gepjarmupark/Image02.webp",
+            "gepjarmupark/Image03.webp",
+            "gepjarmupark/Image04.webp",
+            "gepjarmupark/Image05.webp",
+            "gepjarmupark/Image06.webp",
+            "gepjarmupark/Image07.webp"
+          ]
+        }
+      ]
+    }
+  ]
+}
