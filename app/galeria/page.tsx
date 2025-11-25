@@ -62,12 +62,19 @@ export default function GalleryPage() {
         if (data && data.length > 0) {
           // Convert database format to galleries format
           const galleriesData = data.map((row: any) => row.data) as Gallery[];
-          setGalleries(galleriesData);
 
-          if (galleriesData.length > 0) {
-            setActiveMain(galleriesData[0].id);
-            if (galleriesData[0].subcategories.length > 0) {
-              setActiveSub(galleriesData[0].subcategories[0].id);
+          // Sort galleries by custom order
+          const galleryOrder = ['csaladi-hazak', 'ipari-kereskedelmi', 'felujitas', 'gepjarmupark'];
+          const sortedGalleries = galleryOrder
+            .map(id => galleriesData.find(g => g.id === id))
+            .filter((g): g is Gallery => g !== undefined);
+
+          setGalleries(sortedGalleries);
+
+          if (sortedGalleries.length > 0) {
+            setActiveMain(sortedGalleries[0].id);
+            if (sortedGalleries[0].subcategories.length > 0) {
+              setActiveSub(sortedGalleries[0].subcategories[0].id);
             }
           }
         }
