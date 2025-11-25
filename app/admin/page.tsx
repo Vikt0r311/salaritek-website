@@ -675,7 +675,14 @@ export default function AdminPage() {
 
                 {currentSubcategory && currentSubcategory.images.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {currentSubcategory.images.map((imageName) => (
+                    {currentSubcategory.images
+                      .sort((a, b) => {
+                        // Extract numbers from image names for natural sorting
+                        const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+                        const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+                        return numA - numB;
+                      })
+                      .map((imageName) => (
                       <div
                         key={imageName}
                         className="relative group rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all"
