@@ -7,6 +7,7 @@ import Lightbox from 'yet-another-react-lightbox';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 import { Phone } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
 interface Subcategory {
   id: string;
@@ -35,27 +36,45 @@ export default function GalleryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [supabaseUrl, setSupabaseUrl] = useState('');
 
-  // Fetch galleries and config on mount
+  // Fetch galleries from Supabase on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Load config (Supabase URL)
-        const configResponse = await fetch('/api/config');
-        const configData = await configResponse.json();
-        setSupabaseUrl(configData.supabaseUrl);
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        // Load from JSON file
-        const response = await fetch('/galleries.json');
-        const jsonData: GalleriesData = await response.json();
-        setGalleries(jsonData.galleries);
-        if (jsonData.galleries.length > 0) {
-          setActiveMain(jsonData.galleries[0].id);
-          if (jsonData.galleries[0].subcategories.length > 0) {
-            setActiveSub(jsonData.galleries[0].subcategories[0].id);
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error('Supabase nincs konfigurálva');
+        }
+
+        setSupabaseUrl(supabaseUrl);
+
+        // Create Supabase client
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Fetch galleries from database
+        const { data, error } = await supabase.from('galleries').select('*');
+
+        if (error) {
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          // Convert database format to galleries format
+          const galleriesData = data.map((row: any) => row.data) as Gallery[];
+          setGalleries(galleriesData);
+
+          if (galleriesData.length > 0) {
+            setActiveMain(galleriesData[0].id);
+            if (galleriesData[0].subcategories.length > 0) {
+              setActiveSub(galleriesData[0].subcategories[0].id);
+            }
           }
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching galleries:', error);
+        // Fallback to empty state
+        setGalleries([]);
       } finally {
         setIsLoading(false);
       }
@@ -73,7 +92,7 @@ export default function GalleryPage() {
   const slides =
     activeSubGallery?.images && supabaseUrl
       ? activeSubGallery.images.map((imageName) => {
-          const imageUrl = `${supabaseUrl}/storage/v1/object/public/galeria/${imageName}`;
+          const imageUrl = `${supabaseUrl}/storage/v1/object/public/gallery-images/${imageName}`;
           return { src: imageUrl };
         })
       : [];

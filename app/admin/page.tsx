@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Upload, Trash2, Lock, LogOut } from 'lucide-react';
+import { Upload, Trash2, Lock, LogOut, Loader } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
 interface Subcategory {
   id: string;
@@ -37,25 +38,51 @@ export default function AdminPage() {
   const [isCreatingSubcategory, setIsCreatingSubcategory] = useState(false);
   const [isDeletingSubcategory, setIsDeletingSubcategory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [supabase, setSupabase] = useState<any>(null);
 
-  // Load galleries on mount
+  // Initialize Supabase
   useEffect(() => {
-    if (isLoggedIn) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      const client = createClient(supabaseUrl, supabaseKey);
+      setSupabase(client);
+    }
+  }, []);
+
+  // Load galleries on login
+  useEffect(() => {
+    if (isLoggedIn && supabase) {
       fetchGalleries();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, supabase]);
 
   const fetchGalleries = async () => {
     try {
       setIsLoading(true);
-      // Load from JSON file
-      const response = await fetch('/galleries.json');
-      const jsonData: GalleriesData = await response.json();
-      setGalleries(jsonData.galleries);
-      if (jsonData.galleries.length > 0) {
-        setSelectedGallery(jsonData.galleries[0].id);
-        if (jsonData.galleries[0].subcategories.length > 0) {
-          setSelectedSubcategory(jsonData.galleries[0].subcategories[0].id);
+      if (!supabase) {
+        throw new Error('Supabase nincs inicializálva');
+      }
+
+      const { data, error } = await supabase
+        .from('galleries')
+        .select('*');
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        // Convert database format to galleries format
+        const galleriesData = data.map((row: any) => row.data) as Gallery[];
+        setGalleries(galleriesData);
+
+        if (galleriesData.length > 0) {
+          setSelectedGallery(galleriesData[0].id);
+          if (galleriesData[0].subcategories.length > 0) {
+            setSelectedSubcategory(galleriesData[0].subcategories[0].id);
+          }
         }
       }
     } catch (error) {
@@ -63,6 +90,29 @@ export default function AdminPage() {
       showMessage('Hiba a galéria adatok betöltésekor', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const saveGalleriesToSupabase = async (updatedGalleries: Gallery[]) => {
+    if (!supabase) {
+      throw new Error('Supabase nincs inicializálva');
+    }
+
+    // Update each gallery record
+    const updates = updatedGalleries.map((gallery) => ({
+      id: gallery.id,
+      data: gallery,
+    }));
+
+    for (const update of updates) {
+      const { error } = await supabase
+        .from('galleries')
+        .update({ data: update.data })
+        .eq('id', update.id);
+
+      if (error) {
+        throw error;
+      }
     }
   };
 
@@ -74,7 +124,7 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'SalamonCsaba') {
+    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD || password === 'SalamonCsaba') {
       setIsLoggedIn(true);
       setPassword('');
       showMessage('Sikeres bejelentkezés!', 'success');
@@ -99,32 +149,60 @@ export default function AdminPage() {
       return;
     }
 
+    if (!supabase) {
+      showMessage('Supabase nincs inicializálva', 'error');
+      return;
+    }
+
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('password', 'SalamonCsaba');
-      formData.append('galleryId', selectedGallery);
-      formData.append('subcategoryId', selectedSubcategory);
+      const uploadedImageNames: string[] = [];
 
+      // Upload each file to Supabase Storage
       for (const file of uploadedFiles) {
-        formData.append('files', file);
+        const fileName = `${selectedSubcategory}/${Date.now()}-${file.name}`;
+
+        const { error } = await supabase.storage
+          .from('gallery-images')
+          .upload(fileName, file);
+
+        if (error) {
+          throw error;
+        }
+
+        uploadedImageNames.push(fileName);
       }
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      // Update galleries data
+      const updatedGalleries = galleries.map((gallery) => {
+        if (gallery.id === selectedGallery) {
+          const subcats = gallery.subcategories.map((subcat) => {
+            if (subcat.id === selectedSubcategory) {
+              return {
+                ...subcat,
+                images: [...(subcat.images || []), ...uploadedImageNames],
+              };
+            }
+            return subcat;
+          });
+
+          return {
+            ...gallery,
+            subcategories: subcats,
+          };
+        }
+        return gallery;
       });
 
-      const data = await response.json();
+      // Save to Supabase
+      await saveGalleriesToSupabase(updatedGalleries);
 
-      if (!response.ok) {
-        showMessage(data.error || 'Feltöltés sikertelen', 'error');
-        return;
-      }
-
-      showMessage(`${data.uploadedImages.length} kép sikeresen feltöltve!`, 'success');
+      setGalleries(updatedGalleries);
+      showMessage(
+        `${uploadedImageNames.length} kép sikeresen feltöltve!`,
+        'success'
+      );
       setUploadedFiles([]);
-      await fetchGalleries();
     } catch (error) {
       console.error('Upload error:', error);
       showMessage('Hiba történt a feltöltés során', 'error');
@@ -136,39 +214,49 @@ export default function AdminPage() {
   const handleDelete = async (imageName: string) => {
     if (!confirm('Biztosan törölni szeretné ezt a képet?')) return;
 
-    try {
-      // Update galleries data
-      const currentGallery = galleries.find((g) => g.id === selectedGallery);
-      const currentSubcat = currentGallery?.subcategories.find(
-        (s) => s.id === selectedSubcategory
-      );
+    if (!supabase) {
+      showMessage('Supabase nincs inicializálva', 'error');
+      return;
+    }
 
-      if (currentSubcat) {
-        currentSubcat.images = currentSubcat.images.filter((img) => img !== imageName);
+    try {
+      // Delete from storage
+      const { error: deleteError } = await supabase.storage
+        .from('gallery-images')
+        .remove([imageName]);
+
+      if (deleteError) {
+        throw deleteError;
       }
 
-      // Send delete request to API
-      const response = await fetch('/api/delete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          password: 'SalamonCsaba',
-          imageName: imageName,
-          galleries: galleries,
-        }),
+      // Update galleries data
+      const updatedGalleries = galleries.map((gallery) => {
+        if (gallery.id === selectedGallery) {
+          const subcats = gallery.subcategories.map((subcat) => {
+            if (subcat.id === selectedSubcategory) {
+              return {
+                ...subcat,
+                images: (subcat.images || []).filter(
+                  (img) => img !== imageName
+                ),
+              };
+            }
+            return subcat;
+          });
+
+          return {
+            ...gallery,
+            subcategories: subcats,
+          };
+        }
+        return gallery;
       });
 
-      const data = await response.json();
+      // Save to Supabase
+      await saveGalleriesToSupabase(updatedGalleries);
 
-      if (!response.ok) {
-        showMessage(data.error || 'Törlés sikertelen', 'error');
-        return;
-      }
-
+      setGalleries(updatedGalleries);
       showMessage('Kép sikeresen törölve!', 'success');
-      await fetchGalleries();
     } catch (error) {
       console.error('Delete error:', error);
       showMessage('Hiba történt a törlés során', 'error');
@@ -183,6 +271,11 @@ export default function AdminPage() {
 
     if (!selectedGallery) {
       showMessage('Kérjük válasszon egy galéria kategóriát', 'error');
+      return;
+    }
+
+    if (!supabase) {
+      showMessage('Supabase nincs inicializálva', 'error');
       return;
     }
 
@@ -203,35 +296,24 @@ export default function AdminPage() {
         images: [],
       };
 
-      const currentGallery = galleries.find((g) => g.id === selectedGallery);
-      if (currentGallery) {
-        currentGallery.subcategories.push(newSubcategory);
-      }
-
-      // Update JSON file
-      const response = await fetch('/api/update-galleries', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          password: 'SalamonCsaba',
-          galleries: galleries,
-        }),
+      const updatedGalleries = galleries.map((gallery) => {
+        if (gallery.id === selectedGallery) {
+          return {
+            ...gallery,
+            subcategories: [...gallery.subcategories, newSubcategory],
+          };
+        }
+        return gallery;
       });
 
-      const data = await response.json();
+      // Save to Supabase
+      await saveGalleriesToSupabase(updatedGalleries);
 
-      if (!response.ok) {
-        showMessage(data.error || 'Alkategória létrehozása sikertelen', 'error');
-        return;
-      }
-
+      setGalleries(updatedGalleries);
       showMessage('Alkategória sikeresen létrehozva!', 'success');
       setNewSubcategoryTitle('');
       setShowNewSubcategoryForm(false);
       setSelectedSubcategory(slug);
-      await fetchGalleries();
     } catch (error) {
       console.error('Create subcategory error:', error);
       showMessage('Hiba történt az alkategória létrehozása során', 'error');
@@ -246,50 +328,65 @@ export default function AdminPage() {
       return;
     }
 
+    if (!supabase) {
+      showMessage('Supabase nincs inicializálva', 'error');
+      return;
+    }
+
     const currentGallery = galleries.find((g) => g.id === selectedGallery);
     const subcategoryToDelete = currentGallery?.subcategories.find(
       (s) => s.id === selectedSubcategory
     );
 
-    if (!confirm(`Biztosan törölni szeretné a "${subcategoryToDelete?.title}" alkategóriát? Ez a művelet nem vonható vissza!`)) {
+    if (
+      !confirm(
+        `Biztosan törölni szeretné a "${subcategoryToDelete?.title}" alkategóriát? Ez a művelet nem vonható vissza!`
+      )
+    ) {
       return;
     }
 
     setIsDeletingSubcategory(true);
 
     try {
-      // Remove subcategory from galleries
-      if (currentGallery) {
-        currentGallery.subcategories = currentGallery.subcategories.filter(
-          (s) => s.id !== selectedSubcategory
-        );
+      // Delete all images from storage
+      if (subcategoryToDelete && subcategoryToDelete.images.length > 0) {
+        const { error: deleteError } = await supabase.storage
+          .from('gallery-images')
+          .remove(subcategoryToDelete.images);
+
+        if (deleteError) {
+          throw deleteError;
+        }
       }
 
-      // Update JSON file
-      const response = await fetch('/api/update-galleries', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          password: 'SalamonCsaba',
-          galleries: galleries,
-        }),
+      // Remove subcategory from galleries
+      const updatedGalleries = galleries.map((gallery) => {
+        if (gallery.id === selectedGallery) {
+          return {
+            ...gallery,
+            subcategories: gallery.subcategories.filter(
+              (s) => s.id !== selectedSubcategory
+            ),
+          };
+        }
+        return gallery;
       });
 
-      const data = await response.json();
+      // Save to Supabase
+      await saveGalleriesToSupabase(updatedGalleries);
 
-      if (!response.ok) {
-        showMessage(data.error || 'Alkategória törlése sikertelen', 'error');
-        return;
-      }
-
+      setGalleries(updatedGalleries);
       showMessage('Alkategória sikeresen törölve!', 'success');
-      await fetchGalleries();
 
       // Select the first subcategory of the current gallery
-      if (currentGallery && currentGallery.subcategories.length > 0) {
-        setSelectedSubcategory(currentGallery.subcategories[0].id);
+      const updatedGallery = updatedGalleries.find(
+        (g) => g.id === selectedGallery
+      );
+      if (updatedGallery && updatedGallery.subcategories.length > 0) {
+        setSelectedSubcategory(updatedGallery.subcategories[0].id);
+      } else {
+        setSelectedSubcategory('');
       }
     } catch (error) {
       console.error('Delete subcategory error:', error);
@@ -328,9 +425,7 @@ export default function AdminPage() {
             {message && (
               <div
                 className={`p-4 rounded-lg text-sm font-semibold text-white ${
-                  messageType === 'success'
-                    ? 'bg-green-500'
-                    : 'bg-red-500'
+                  messageType === 'success' ? 'bg-green-500' : 'bg-red-500'
                 }`}
               >
                 {message}
@@ -354,6 +449,17 @@ export default function AdminPage() {
     (s) => s.id === selectedSubcategory
   );
 
+  if (!supabase) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-4 sm:p-8 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md">
+          <Loader className="w-12 h-12 text-construction-orange animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 text-lg">Supabase betöltése...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
@@ -375,9 +481,7 @@ export default function AdminPage() {
         {message && (
           <div
             className={`mb-6 p-4 rounded-lg text-white font-semibold ${
-              messageType === 'success'
-                ? 'bg-green-500'
-                : 'bg-red-500'
+              messageType === 'success' ? 'bg-green-500' : 'bg-red-500'
             }`}
           >
             {message}
@@ -386,6 +490,7 @@ export default function AdminPage() {
 
         {isLoading ? (
           <div className="text-center py-12">
+            <Loader className="w-8 h-8 text-construction-orange animate-spin mx-auto mb-4" />
             <p className="text-gray-600">Adatok betöltése...</p>
           </div>
         ) : (
@@ -393,7 +498,9 @@ export default function AdminPage() {
             {/* Left Sidebar - Selection */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
-                <h2 className="text-xl font-bold text-steel-blue mb-4">Galéria Választás</h2>
+                <h2 className="text-xl font-bold text-steel-blue mb-4">
+                  Galéria Választás
+                </h2>
 
                 <div className="space-y-4">
                   <div>
@@ -404,7 +511,9 @@ export default function AdminPage() {
                       value={selectedGallery}
                       onChange={(e) => {
                         setSelectedGallery(e.target.value);
-                        const gallery = galleries.find((g) => g.id === e.target.value);
+                        const gallery = galleries.find(
+                          (g) => g.id === e.target.value
+                        );
                         if (gallery && gallery.subcategories.length > 0) {
                           setSelectedSubcategory(gallery.subcategories[0].id);
                         }
@@ -438,7 +547,9 @@ export default function AdminPage() {
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setShowNewSubcategoryForm(!showNewSubcategoryForm)}
+                      onClick={() =>
+                        setShowNewSubcategoryForm(!showNewSubcategoryForm)
+                      }
                       className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition-all"
                     >
                       {showNewSubcategoryForm ? 'Mégse' : '+ Új'}
@@ -499,10 +610,7 @@ export default function AdminPage() {
                       className="hidden"
                       id="fileInput"
                     />
-                    <label
-                      htmlFor="fileInput"
-                      className="cursor-pointer block"
-                    >
+                    <label htmlFor="fileInput" className="cursor-pointer block">
                       <p className="text-lg font-semibold text-steel-blue mb-2">
                         Kattintson vagy húzzon képeket ide
                       </p>
@@ -544,8 +652,17 @@ export default function AdminPage() {
                     disabled={isUploading || uploadedFiles.length === 0}
                     className="w-full bg-construction-orange hover:bg-construction-orange/90 disabled:bg-gray-400 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
                   >
-                    <Upload className="w-5 h-5" />
-                    {isUploading ? 'Feltöltés...' : 'Feltöltés'}
+                    {isUploading ? (
+                      <>
+                        <Loader className="w-5 h-5 animate-spin" />
+                        Feltöltés...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5" />
+                        Feltöltés
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -565,9 +682,17 @@ export default function AdminPage() {
                       >
                         <div className="aspect-square bg-gray-200 relative">
                           <img
-                            src={`/galeria/${imageName}`}
+                            src={
+                              process.env.NEXT_PUBLIC_SUPABASE_URL
+                                ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gallery-images/${imageName}`
+                                : ''
+                            }
                             alt={imageName}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                '/placeholder.png';
+                            }}
                           />
                         </div>
 
