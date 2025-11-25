@@ -67,9 +67,9 @@ export default function GalleryPage() {
   const slides =
     activeSubGallery?.images
       ? activeSubGallery.images.map((imageName) => {
-          // imageName already contains the full path like "subcategory/Image01.webp"
-          const src = `/galeria/${imageName}`;
-          return { src };
+          // Try Supabase URL first, fallback to local
+          const supabaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/galeria/${imageName}`;
+          return { src: supabaseUrl };
         })
       : [];
 

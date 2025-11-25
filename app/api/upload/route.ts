@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { createClient } from '@supabase/supabase-js';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'SalamonCsaba';
 const GALLERIES_JSON_PATH = path.join(process.cwd(), 'public', 'galleries.json');
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,17 +61,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create directory if it doesn't exist
-    const galeriaPath = path.join(
-      process.cwd(),
-      'public',
-      'galeria',
-      subcategoryId
-    );
-    if (!fs.existsSync(galeriaPath)) {
-      fs.mkdirSync(galeriaPath, { recursive: true });
-    }
-
     // Get next image number
     const nextNumber = subcategory.images.length + 1;
     const uploadedImages: string[] = [];
@@ -75,16 +70,41 @@ export async function POST(request: NextRequest) {
       const file = files[i];
       const buffer = await file.arrayBuffer();
 
-      // Convert to WebP and save
+      // Convert to WebP
       const imageName = `Image${String(nextNumber + i).padStart(2, '0')}.webp`;
-      const imagePath = path.join(galeriaPath, imageName);
+      const webpBuffer = await sharp(buffer)
+        .webp({ quality: 80 })
+        .toBuffer();
 
       try {
-        await sharp(buffer)
-          .webp({ quality: 80 })
-          .toFile(imagePath);
+        // Upload to Supabase Storage
+        const filePath = `${subcategoryId}/${imageName}`;
+        const { error: uploadError } = await supabase.storage
+          .from('galeria')
+          .upload(filePath, webpBuffer, {
+            contentType: 'image/webp',
+            upsert: false,
+          });
 
-        const imageNameWithPath = `${subcategoryId}/${imageName}`;
+        if (uploadError) {
+          console.error(`Error uploading ${imageName}:`, uploadError);
+          continue;
+        }
+
+        // Also save locally for fallback
+        const galeriaPath = path.join(
+          process.cwd(),
+          'public',
+          'galeria',
+          subcategoryId
+        );
+        if (!fs.existsSync(galeriaPath)) {
+          fs.mkdirSync(galeriaPath, { recursive: true });
+        }
+        const imagePath = path.join(galeriaPath, imageName);
+        fs.writeFileSync(imagePath, webpBuffer);
+
+        const imageNameWithPath = filePath;
         uploadedImages.push(imageNameWithPath);
         subcategory.images.push(imageNameWithPath);
       } catch (error) {
