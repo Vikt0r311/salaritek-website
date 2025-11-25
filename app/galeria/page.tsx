@@ -40,8 +40,8 @@ export default function GalleryPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hyigyyriifuaejqallhm.supabase.co';
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aWd5eXJpaWZ1YWVqcWFsbGhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMTE5NTQsImV4cCI6MjA3OTU4Nzk1NH0.2EaMAyfUtabmGD8E1CxBmzgJYRHUclBP1i3QZjlz29E';
 
         if (!supabaseUrl || !supabaseKey) {
           throw new Error('Supabase nincs konfigurálva');
