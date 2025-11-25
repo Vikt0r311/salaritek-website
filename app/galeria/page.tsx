@@ -33,11 +33,17 @@ export default function GalleryPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [supabaseUrl, setSupabaseUrl] = useState('');
 
-  // Fetch galleries on mount
+  // Fetch galleries and config on mount
   useEffect(() => {
-    const fetchGalleries = async () => {
+    const fetchData = async () => {
       try {
+        // Load config (Supabase URL)
+        const configResponse = await fetch('/api/config');
+        const configData = await configResponse.json();
+        setSupabaseUrl(configData.supabaseUrl);
+
         // Load from JSON file
         const response = await fetch('/galleries.json');
         const jsonData: GalleriesData = await response.json();
@@ -49,13 +55,13 @@ export default function GalleryPage() {
           }
         }
       } catch (error) {
-        console.error('Error fetching galleries:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchGalleries();
+    fetchData();
   }, []);
 
   const activeMainCategory = galleries.find((cat) => cat.id === activeMain);
@@ -65,11 +71,10 @@ export default function GalleryPage() {
   );
 
   const slides =
-    activeSubGallery?.images
+    activeSubGallery?.images && supabaseUrl
       ? activeSubGallery.images.map((imageName) => {
-          // Try Supabase URL first, fallback to local
-          const supabaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/galeria/${imageName}`;
-          return { src: supabaseUrl };
+          const imageUrl = `${supabaseUrl}/storage/v1/object/public/galeria/${imageName}`;
+          return { src: imageUrl };
         })
       : [];
 

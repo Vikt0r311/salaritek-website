@@ -7,13 +7,20 @@ import { createClient } from '@supabase/supabase-js';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'SalamonCsaba';
 const GALLERIES_JSON_PATH = path.join(process.cwd(), 'public', 'galleries.json');
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client inside function for serverless compatibility
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Supabase credentials not configured' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const formData = await request.formData();
     const password = formData.get('password') as string;
     const galleryId = formData.get('galleryId') as string;
