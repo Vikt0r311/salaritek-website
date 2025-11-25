@@ -91,10 +91,17 @@ export default function GalleryPage() {
 
   const slides =
     activeSubGallery?.images && supabaseUrl
-      ? activeSubGallery.images.map((imageName) => {
-          const imageUrl = `${supabaseUrl}/storage/v1/object/public/gallery-images/${imageName}`;
-          return { src: imageUrl };
-        })
+      ? activeSubGallery.images
+          .sort((a, b) => {
+            // Extract numbers from image names for natural sorting
+            const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+            const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+            return numA - numB;
+          })
+          .map((imageName) => {
+            const imageUrl = `${supabaseUrl}/storage/v1/object/public/gallery-images/${imageName}`;
+            return { src: imageUrl };
+          })
       : [];
 
   return (
