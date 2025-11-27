@@ -8,15 +8,11 @@ import {
   Home,
   Factory,
   Wrench,
-  CheckCircle2,
   TrendingUp,
   Award,
-  Handshake,
-  Users,
   Clock,
   Shield,
   ChevronDown,
-  ThumbsUp,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -88,9 +84,8 @@ export default function HomePage() {
               </div>
 
               {/* Statisztika badge-ek - csak desktop */}
-              <div className="hidden lg:grid grid-cols-2 gap-4">
+              <div className="hidden lg:grid grid-cols-3 gap-4">
                 {[
-                  { label: "Pontos Határidő Tartás", icon: CheckCircle2 },
                   { label: "Minőségbiztosítás", icon: Shield },
                   { label: "Kulcsrakész Kivitelezés", icon: Award },
                   { label: "Dinamikusan fejlődő cég", icon: Clock },
