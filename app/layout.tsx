@@ -38,10 +38,10 @@ export const metadata: Metadata = {
     url: 'https://salarkitek.hu',
     images: [
       {
-        url: 'https://salaritek-website.vercel.app/logo.png',
-        width: 288,
-        height: 288,
-        alt: 'Salarkitek Kft. logó',
+        url: 'https://salaritek-website.vercel.app/og.png',
+        width: 274,
+        height: 248,
+        alt: 'Salarkitek Kft.',
       },
     ],
   },
