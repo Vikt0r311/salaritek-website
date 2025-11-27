@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     // Email to admin
     const adminEmailResult = await resend.emails.send({
       from: 'Salarkitek <onboarding@resend.dev>',
-      to: 'szilakviktor@gmail.com',
+      to: 'info@salarkitek.hu',
       replyTo: email,
       subject: `Új kapcsolati üzenet: ${nev}`,
       html: `
