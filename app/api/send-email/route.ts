@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Email to admin
     const adminEmailResult = await resend.emails.send({
-      from: 'Salarkitek <onboarding@resend.dev>',
+      from: 'Salarkitek <info@salarkitek.hu>',
       to: 'szilakviktor@gmail.com',
       replyTo: email,
       subject: `Új kapcsolati üzenet: ${nev}`,
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     // Confirmation email to user
     const userEmailResult = await resend.emails.send({
-      from: 'Salarkitek <onboarding@resend.dev>',
+      from: 'Salarkitek <info@salarkitek.hu>',
       to: email,
       subject: 'Megkaptuk az üzenetét - Salarkitek',
       html: `
