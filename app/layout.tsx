@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     url: 'https://salarkitek.hu',
     images: [
       {
-        url: 'https://salarkitek.hu/logo.png',
+        url: 'https://salaritek-website.vercel.app/logo.png',
         width: 600,
         height: 600,
         alt: 'Salarkitek Kft. logó',
@@ -65,7 +65,7 @@ const jsonLd = {
     'Építőipari generálkivitelezés családi házak, ipari épületek, felújítások területén. Megbízható kivitelező csapat stabil háttérrel.',
   url: 'https://salarkitek.hu',
   '@id': 'https://salarkitek.hu',
-  logo: 'https://salarkitek.hu/logo.png',
+  logo: 'https://salaritek-website.vercel.app/logo.png',
   address: {
     '@type': 'PostalAddress',
     addressCountry: 'HU',
