@@ -5,22 +5,45 @@ import { useState } from 'react';
 
 export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
     const form = e.currentTarget;
     const formData = new FormData(form);
 
+    const data = {
+      nev: formData.get('nev'),
+      email: formData.get('email'),
+      telefon: formData.get('telefon'),
+      szolgaltatas: formData.get('szolgaltatas'),
+      uzenet: formData.get('uzenet'),
+    };
+
     try {
-      await fetch('/', {
+      const response = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(formData as any).toString(),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Hiba az email küldésekor');
+      }
+
       setIsSubmitted(true);
     } catch (error) {
       console.error('Form submission error:', error);
-      alert('Hiba történt az üzenet küldése során. Kérjük, próbálja újra!');
+      setError(
+        error instanceof Error ? error.message : 'Hiba történt. Kérjük, próbálja újra!'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -171,16 +194,16 @@ export default function ContactPage() {
                 Kapcsolati Űrlap
               </h2>
 
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                  {error}
+                </div>
+              )}
+
               <form
-                name="kapcsolat"
-                method="POST"
-                data-netlify="true"
-                data-netlify-honeypot="bot-field"
                 onSubmit={handleSubmit}
                 className="space-y-6"
               >
-                <input type="hidden" name="form-name" value="kapcsolat" />
-                <input type="hidden" name="bot-field" />
 
                 <div>
                   <label
@@ -292,10 +315,20 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-construction-orange hover:bg-construction-orange/90 text-white font-bold py-4 px-6 rounded-lg transition-all hover:scale-105 hover:shadow-xl flex items-center justify-center gap-2"
+                  disabled={isLoading}
+                  className="w-full bg-construction-orange hover:bg-construction-orange/90 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-all hover:scale-105 hover:shadow-xl flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:scale-100"
                 >
-                  <Send className="w-5 h-5" />
-                  Üzenet Küldése
+                  {isLoading ? (
+                    <>
+                      <span className="inline-block animate-spin">⏳</span>
+                      Küldés alatt...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Üzenet Küldése
+                    </>
+                  )}
                 </button>
               </form>
             </div>
